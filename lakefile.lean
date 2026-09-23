@@ -43,10 +43,15 @@ extern_lib leancrypto pkg := do
     let tmp := pkg.buildDir / "libcrypto-objs"
     if ← tmp.pathExists then IO.FS.removeDirAll tmp
     IO.FS.createDirAll tmp
-    discard <| IO.Process.output { cmd := "ar", args := #["x", libA.toString], cwd := tmp }
+    let x ← IO.Process.output { cmd := "ar", args := #["x", libA.toString], cwd := tmp }
+    if x.exitCode != 0 then error s!"ar x {libA} failed: {x.stderr}"
+    let members ← IO.Process.output { cmd := "ar", args := #["t", libA.toString] }
+    let expected := (members.stdout.splitOn "\n").filter (·.endsWith ".o") |>.eraseDups |>.length
     if ← out.pathExists then IO.FS.removeFile out
     let objs ← (← tmp.readDir).filterMapM fun e =>
       pure (if e.path.extension == some "o" then some e.path.toString else none)
+    if objs.size != expected then
+      error s!"leancrypto: extracted {objs.size} objects from {libA}, expected {expected}"
     let r ← IO.Process.output { cmd := "ar", args := #["rcs", out.toString, o.toString] ++ objs }
     if r.exitCode != 0 then error s!"ar failed: {r.stderr}"
     addTrace (← computeTrace libA)
