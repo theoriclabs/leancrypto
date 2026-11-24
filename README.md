@@ -15,10 +15,10 @@ Requires OpenSSL 3 with a static `libcrypto.a`:
 - Elsewhere: set `OPENSSL_DIR` to the prefix containing `include/` and `lib/`.
 
 ```lean
-require leancrypto from git "https://github.com/theoriclabs/leancrypto" @ "v0.1.0"
+require leancrypto from git "https://github.com/theoriclabs/leancrypto" @ "v0.1.1"
 ```
 
-Toolchain: `leanprover/lean4:v4.33.0`.
+Toolchain: `leanprover/lean4:v4.36.0`.
 
 ## Linking
 

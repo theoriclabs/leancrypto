@@ -5,6 +5,10 @@ are published as `vX.Y.Z` Git tags.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-24
+
+- Upgrade the Lean toolchain to 4.36.0.
+
 ## [0.1.0] - 2026-09-22
 
 ### Added
