@@ -1,5 +1,13 @@
 namespace LeanCrypto
 
+/-- AES-256-GCM encryption via OpenSSL, returning ciphertext and a 16-byte tag. -/
+@[extern "leancrypto_aes256_gcm_seal"]
+opaque aes256GcmSealRaw (key nonce plaintext aad : @& ByteArray) : Except String (ByteArray × ByteArray)
+
+/-- AES-256-GCM authenticated decryption via OpenSSL. -/
+@[extern "leancrypto_aes256_gcm_open"]
+opaque aes256GcmOpenRaw (key nonce ciphertext tag aad : @& ByteArray) : Except String ByteArray
+
 /-- SHA-256 digest (32 bytes), computed by OpenSSL. -/
 @[extern "leancrypto_sha256"]
 opaque sha256 (data : @& ByteArray) : ByteArray

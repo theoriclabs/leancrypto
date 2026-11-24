@@ -5,6 +5,11 @@ are published as `vX.Y.Z` Git tags.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-24
+
+- Add OpenSSL-backed AES-256-GCM authenticated encryption with 32-byte keys,
+  caller-supplied 12-byte nonces, associated data, and 16-byte tags.
+
 ## [0.1.1] - 2026-11-24
 
 - Upgrade the Lean toolchain to 4.36.0.

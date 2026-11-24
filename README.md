@@ -15,10 +15,15 @@ Requires OpenSSL 3 with a static `libcrypto.a`:
 - Elsewhere: set `OPENSSL_DIR` to the prefix containing `include/` and `lib/`.
 
 ```lean
-require leancrypto from git "https://github.com/theoriclabs/leancrypto" @ "v0.1.1"
+require leancrypto from git "https://github.com/theoriclabs/leancrypto" @ "v0.2.0"
 ```
 
 Toolchain: `leanprover/lean4:v4.36.0`.
+
+`aes256GcmSeal` and `aes256GcmOpen` provide OpenSSL-backed authenticated
+encryption with associated data. Use a 32-byte key and a 12-byte nonce that
+is unique under that key. Keep the returned 16-byte tag with the ciphertext.
+The caller supplies the same associated data when opening the sealed box.
 
 ## Linking
 

@@ -28,6 +28,57 @@ def sha256Tests : T Unit := do
   eqHex "sha256 448-bit" (sha256 (str "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"))
     "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1"
 
+-- NIST CAVP gcmEncryptExtIV256.rsp, Count = 0 for each set of lengths.
+private def gcmVector (name key nonce plaintext aad ciphertext tag : String) : T Unit := do
+  let key := hx key
+  let nonce := hx nonce
+  let plaintext := hx plaintext
+  let aad := hx aad
+  match aes256GcmSeal key nonce plaintext aad with
+  | .error _ => check s!"{name} seal" false
+  | .ok sealed =>
+    check s!"{name} nonce" (sealed.nonce == nonce)
+    eqHex s!"{name} ciphertext" sealed.ciphertext ciphertext
+    eqHex s!"{name} tag" sealed.tag tag
+  match aes256GcmOpen key nonce (hx ciphertext) (hx tag) aad with
+  | .error _ => check s!"{name} open" false
+  | .ok opened => check s!"{name} plaintext" (opened == plaintext)
+
+private def flipFirst (bytes : ByteArray) : ByteArray :=
+  ⟨bytes.data.modify 0 (· ^^^ 1)⟩
+
+def aesGcmTests : T Unit := do
+  gcmVector "AES-256-GCM empty"
+    "b52c505a37d78eda5dd34f20c22540ea1b58963cf8e5bf8ffa85f9f2492505b4"
+    "516c33929df5a3284ff463d7"
+    ""
+    ""
+    ""
+    "bdc1ac884d332457a1d2664f168c76f0"
+  gcmVector "AES-256-GCM with AAD"
+    "92e11dcdaa866f5ce790fd24501f92509aacf4cb8b1339d50c9c1240935dd08b"
+    "ac93a1a6145299bde902f21a"
+    "2d71bcfa914e4ac045b2aa60955fad24"
+    "1e0889016f67601c8ebea4943bc23ad6"
+    "8995ae2e6df3dbf96fac7b7137bae67f"
+    "eca5aa77d51d4a0a14d9c51e1da474ab"
+  let key := rep 0x17 32
+  let nonce := rep 0x29 12
+  let aad := str "associated data"
+  let plaintext := str "authenticated plaintext"
+  let .ok box := aes256GcmSeal key nonce plaintext aad
+    | check "AES-256-GCM seal for tamper checks" false
+  check "AES-256-GCM wrong key" !(aes256GcmOpen (flipFirst key) nonce box.ciphertext box.tag aad).isOk
+  check "AES-256-GCM wrong nonce" !(aes256GcmOpen key (flipFirst nonce) box.ciphertext box.tag aad).isOk
+  check "AES-256-GCM altered ciphertext" !(aes256GcmOpen key nonce (flipFirst box.ciphertext) box.tag aad).isOk
+  check "AES-256-GCM altered tag" !(aes256GcmOpen key nonce box.ciphertext (flipFirst box.tag) aad).isOk
+  check "AES-256-GCM altered AAD" !(aes256GcmOpen key nonce box.ciphertext box.tag (flipFirst aad)).isOk
+  check "AES-256-GCM short tag" !(aes256GcmOpen key nonce box.ciphertext (box.tag.extract 0 15) aad).isOk
+  check "AES-256-GCM short key" !(aes256GcmSeal .empty nonce plaintext aad).isOk
+  check "AES-256-GCM short nonce" !(aes256GcmSeal key .empty plaintext aad).isOk
+  check "AES-256-GCM raw seal checks key length" !(aes256GcmSealRaw .empty nonce plaintext aad).isOk
+  check "AES-256-GCM raw open checks tag length" !(aes256GcmOpenRaw key nonce box.ciphertext .empty aad).isOk
+
 def hmacTests : T Unit := do
   eqHex "rfc4231 tc1" (hmacSha256 (rep 0x0b 20) (str "Hi There"))
     "b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7"
@@ -132,6 +183,6 @@ def passwordTests : T Unit := do
     check s!"pw malformed {bad}" (!Password.verify "correct horse" bad)
 
 def main : IO UInt32 := do
-  let (_, st) ← (do sha256Tests; hmacTests; scryptTests; base64Tests; hexTests; ctTests; randTests; passwordTests).run {}
+  let (_, st) ← (do sha256Tests; aesGcmTests; hmacTests; scryptTests; base64Tests; hexTests; ctTests; randTests; passwordTests).run {}
   IO.println s!"{st.pass} passed, {st.fail} failed"
   return if st.fail == 0 then 0 else 1
